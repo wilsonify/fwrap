@@ -3,3 +3,4 @@ BUILD/*
 fwrap/fparser
 fwrap.log
 fwrap/waf
+.idea/
