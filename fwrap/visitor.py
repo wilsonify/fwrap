@@ -1,7 +1,7 @@
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Copyright (c) 2010, Kurt W. Smith
 # All rights reserved. See LICENSE.txt.
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 #
 #   Tree visitor and transform framework
@@ -9,9 +9,13 @@
 # Ripped out of Cython and used for expression tree parsing.
 
 import inspect
+from Cython.Compiler.ExprNodes import ExprNode, NameNode
+from Cython.Compiler.Nodes import DefNode, Node
+
 
 class BasicVisitor(object):
     """A generic visitor base class which can be used for visiting any kind of object."""
+
     # Note: If needed, this can be replaced with a more efficient metaclass
     # approach, resolving the jump table at module load time rather than per visitor
     # instance.
@@ -23,7 +27,7 @@ class BasicVisitor(object):
         try:
             handler_method = self.dispatch_table[cls]
         except KeyError:
-            #print "Cache miss for class %s in visitor %s" % (
+            # print "Cache miss for class %s in visitor %s" % (
             #    cls.__name__, type(self).__name__)
             # Must resolve, try entire hierarchy
             pattern = "visit_%s"
@@ -34,16 +38,17 @@ class BasicVisitor(object):
                     handler_method = getattr(self, pattern % mro_cls.__name__)
                     break
             if handler_method is None:
-                print type(self), type(obj)
+                print(type(self), type(obj))
                 if hasattr(self, 'access_path') and self.access_path:
-                    print self.access_path
+                    print(self.access_path)
                     if self.access_path:
                         # print self.access_path[-1][0].pos
-                        print self.access_path[-1][0].__dict__
+                        print(self.access_path[-1][0].__dict__)
                 raise RuntimeError("Visitor does not accept object: %s of type %s" % (obj, type(obj)))
-            #print "Caching " + cls.__name__
+            # print "Caching " + cls.__name__
             self.dispatch_table[cls] = handler_method
         return handler_method(obj)
+
 
 class TreeVisitor(BasicVisitor):
     """
@@ -88,14 +93,14 @@ class TreeVisitor(BasicVisitor):
     out 3
     out 0
     """
-    
+
     def __init__(self):
         super(TreeVisitor, self).__init__()
         self.access_path = []
 
     def dump_node(self, node, indent=0):
-        ignored = list(node.child_attrs) + [u'child_attrs', u'pos',
-                                            u'gil_message', u'subexprs']
+        ignored = list(node.child_attrs) + ['child_attrs', 'pos',
+                                            'gil_message', 'subexprs']
         values = []
         pos = node.pos
         if pos:
@@ -103,13 +108,13 @@ class TreeVisitor(BasicVisitor):
             if source:
                 import os.path
                 source = os.path.basename(source.get_description())
-            values.append(u'%s:%s:%s' % (source, pos[1], pos[2]))
+            values.append('%s:%s:%s' % (source, pos[1], pos[2]))
         attribute_names = dir(node)
         attribute_names.sort()
         for attr in attribute_names:
             if attr in ignored:
                 continue
-            if attr.startswith(u'_') or attr.endswith(u'_'):
+            if attr.startswith('_') or attr.endswith('_'):
                 continue
             try:
                 value = getattr(node, attr)
@@ -118,14 +123,14 @@ class TreeVisitor(BasicVisitor):
             if value is None or value == 0:
                 continue
             elif isinstance(value, list):
-                value = u'[...]/%d' % len(value)
-            elif not isinstance(value, (str, unicode, long, int, float)):
+                value = '[...]/%d' % len(value)
+            elif not isinstance(value, (str, int, float)):
                 continue
             else:
                 value = repr(value)
-            values.append(u'%s = %s' % (attr, value))
-        return u'%s(%s)' % (node.__class__.__name__,
-                           u',\n    '.join(values))
+            values.append('%s = %s' % (attr, value))
+        return '%s(%s)' % (node.__class__.__name__,
+                           ',\n    '.join(values))
 
     def _find_node_path(self, stacktrace):
         import os.path
@@ -133,8 +138,8 @@ class TreeVisitor(BasicVisitor):
         nodes = []
         while hasattr(stacktrace, 'tb_frame'):
             frame = stacktrace.tb_frame
-            node = frame.f_locals.get(u'self')
-            if isinstance(node, Nodes.Node):
+            node = frame.f_locals.get('self')
+            if isinstance(node, Node):
                 code = frame.f_code
                 method_name = code.co_name
                 pos = (os.path.basename(code.co_filename),
@@ -142,7 +147,7 @@ class TreeVisitor(BasicVisitor):
                 nodes.append((node, method_name, pos))
                 last_traceback = stacktrace
             stacktrace = stacktrace.tb_next
-        return (last_traceback, nodes)
+        return last_traceback, nodes
 
     def visitchild(self, child, parent, attrname, idx):
         self.access_path.append((parent, attrname, idx))
@@ -150,29 +155,29 @@ class TreeVisitor(BasicVisitor):
         result = self.visit(child)
 
         # except Errors.CompileError:
-            # raise
+        # raise
         # except Exception, e:
-            # import sys
-            # trace = ['']
-            # for parent, attribute, index in self.access_path:
-                # node = getattr(parent, attribute)
-                # if index is None:
-                    # index = ''
-                # else:
-                    # node = node[index]
-                    # index = u'[%d]' % index
-                # trace.append(u'%s.%s%s = %s' % (
-                    # parent.__class__.__name__, attribute, index,
-                    # self.dump_node(node)))
-            # stacktrace, called_nodes = self._find_node_path(sys.exc_info()[2])
-            # last_node = child
-            # for node, method_name, pos in called_nodes:
-                # last_node = node
-                # trace.append(u"File '%s', line %d, in %s: %s" % (
-                    # pos[0], pos[1], method_name, self.dump_node(node)))
-            # raise Errors.CompilerCrash(
-                # last_node.pos, self.__class__.__name__,
-                # u'\n'.join(trace), e, stacktrace)
+        # import sys
+        # trace = ['']
+        # for parent, attribute, index in self.access_path:
+        # node = getattr(parent, attribute)
+        # if index is None:
+        # index = ''
+        # else:
+        # node = node[index]
+        # index = u'[%d]' % index
+        # trace.append(u'%s.%s%s = %s' % (
+        # parent.__class__.__name__, attribute, index,
+        # self.dump_node(node)))
+        # stacktrace, called_nodes = self._find_node_path(sys.exc_info()[2])
+        # last_node = child
+        # for node, method_name, pos in called_nodes:
+        # last_node = node
+        # trace.append(u"File '%s', line %d, in %s: %s" % (
+        # pos[0], pos[1], method_name, self.dump_node(node)))
+        # raise Errors.CompilerCrash(
+        # last_node.pos, self.__class__.__name__,
+        # u'\n'.join(trace), e, stacktrace)
         # self.access_path.pop()
         return result
 
@@ -187,10 +192,12 @@ class TreeVisitor(BasicVisitor):
         in an attribute)).
         """
 
-        if parent is None: return None
+        if parent is None:
+            return None
         result = {}
         for attr in parent.child_attrs:
-            if attrs is not None and attr not in attrs: continue
+            if attrs is not None and attr not in attrs:
+                continue
             child = getattr(parent, attr)
             if child is not None:
                 if isinstance(child, list):
@@ -206,17 +213,19 @@ class PrintTree(TreeVisitor):
     """Prints a representation of the tree to standard output.
     Subclass and override repr_of to provide more information
     about nodes. """
+
     def __init__(self):
         TreeVisitor.__init__(self)
         self._indent = ""
 
     def indent(self):
         self._indent += "  "
+
     def unindent(self):
         self._indent = self._indent[:-2]
 
     def __call__(self, tree, phase=None):
-        print("Parse tree dump at phase '%s'" % phase)
+        print(("Parse tree dump at phase '%s'" % phase))
         self.visit(tree)
         return tree
 
@@ -233,7 +242,7 @@ class PrintTree(TreeVisitor):
                 name = "%s[%d]" % (attr, idx)
             else:
                 name = attr
-        print("%s- %s: %s" % (self._indent, name, self.repr_of(node)))
+        print(("%s- %s: %s" % (self._indent, name, self.repr_of(node))))
         self.indent()
         self.visitchildren(node)
         self.unindent()
@@ -244,11 +253,11 @@ class PrintTree(TreeVisitor):
             return "(none)"
         else:
             result = node.__class__.__name__
-            if isinstance(node, ExprNodes.NameNode):
+            if isinstance(node, NameNode):
                 result += "(type=%s, name=\"%s\")" % (repr(node.type), node.name)
-            elif isinstance(node, Nodes.DefNode):
+            elif isinstance(node, DefNode):
                 result += "(name=\"%s\")" % node.name
-            elif isinstance(node, ExprNodes.ExprNode):
+            elif isinstance(node, ExprNode):
                 t = node.type
                 result += "(type=%s)" % repr(t)
             elif node.pos:

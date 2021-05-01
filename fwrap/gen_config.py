@@ -3,9 +3,9 @@
 # All rights reserved. See LICENSE.txt.
 #------------------------------------------------------------------------------
 
-from cStringIO import StringIO
-from cPickle import dumps
-import constants
+from io import StringIO
+from pickle import dumps
+from . import constants
 
 INDENT = "    "
 
@@ -48,7 +48,7 @@ def _generate_type_specs(ctps, buf):
     buf.write(dumps(out_lst))
 
 def read_type_spec(fname):
-    from cPickle import loads
+    from pickle import loads
     fh = open(fname, 'rb')
     ds = loads(fh.read())
     fh.close()
@@ -346,7 +346,7 @@ f2c = {
     'c_char'            : 'char',
     }
 
-c2f = dict([(y,x) for (x,y) in f2c.items()])
+c2f = dict([(y,x) for (x,y) in list(f2c.items())])
 
 type_dict = {
         'integer' : ('c_signed_char', 'c_short', 'c_int',

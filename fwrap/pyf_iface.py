@@ -1,11 +1,12 @@
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Copyright (c) 2010, Kurt W. Smith
 # All rights reserved. See LICENSE.txt.
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 from fwrap import fort_expr
-from intrinsics import intrinsics
+from .intrinsics import intrinsics
 import re
+
 
 def _py_kw_mangler(name):
     # mangles name if it's a Python or Cython keyword.
@@ -18,20 +19,24 @@ def _py_kw_mangler(name):
         # Cython keywords
         'include', 'ctypedef', 'cdef', 'cpdef',
         'cimport', 'by'
-        )
+    )
     if name.lower() in kwds:
         return "%s__" % name
     return name
 
+
 vfn_matcher = re.compile(r'[a-zA-Z][_a-zA-Z0-9]{,62}$').match
+
+
 def valid_fort_name(name):
     return vfn_matcher(name)
+
 
 class InvalidNameException(Exception):
     pass
 
-class ScalarIntExpr(object):
 
+class ScalarIntExpr(object):
     _find_names = re.compile(r'(?<![_\d])[a-z][a-z0-9_%]*', re.IGNORECASE).findall
 
     def __init__(self, expr_str):
@@ -44,7 +49,6 @@ class ScalarIntExpr(object):
 
 
 class Dtype(object):
-
     cdef_extern_decls = ''
 
     cimport_decls = ''
@@ -55,7 +59,7 @@ class Dtype(object):
 
         if not valid_fort_name(fw_ktp):
             raise InvalidNameException(
-                    "%s is not a valid fortran parameter name." % fw_ktp)
+                "%s is not a valid fortran parameter name." % fw_ktp)
 
         self.fw_ktp = fw_ktp
         if not fw_ktp.endswith("_t"):
@@ -74,19 +78,19 @@ class Dtype(object):
         self.type = None
         self.lang = lang
 
-        #XXX: refactor this with lang
+        # XXX: refactor this with lang
         self.cname = cname
         self.npy_enum = "%s_enum" % self.fw_ktp
 
     def _get_odecl(self):
 
-        #XXX: refactor this; new attribute?
+        # XXX: refactor this; new attribute?
         if self.lang == 'c' and self.cname:
             return self.cname
 
         if self.length and self.kind:
             raise ValueError(
-                    "both length and kind given for datatype %s" % self.type)
+                "both length and kind given for datatype %s" % self.type)
 
         if self.length:
             return "%s*%s" % (self.type, self.length)
@@ -94,6 +98,7 @@ class Dtype(object):
             return "%s(kind=%s)" % (self.type, self.kind)
         else:
             return None
+
     odecl = property(_get_odecl)
 
     def __hash__(self):
@@ -101,8 +106,8 @@ class Dtype(object):
 
     def __eq__(self, other):
         return self.fw_ktp == other.fw_ktp and \
-                self.odecl == other.odecl and \
-                self.type == other.type
+               self.odecl == other.odecl and \
+               self.type == other.type
 
     def type_spec(self):
         return '%s(kind=%s)' % (self.type, self.fw_ktp)
@@ -132,7 +137,6 @@ class Dtype(object):
 
 
 class CharacterType(Dtype):
-
     cdef_extern_decls = '''\
 cdef extern from "string.h":
     void *memcpy(void *dest, void *src, size_t n)
@@ -142,9 +146,9 @@ cdef extern from "string.h":
 
     def __init__(self, fw_ktp, len, mangler=None, kind=None, **kwargs):
         super(CharacterType, self).__init__(fw_ktp,
-                                    mangler=mangler,
-                                    length=len, kind=kind,
-                                    **kwargs)
+                                            mangler=mangler,
+                                            length=len, kind=kind,
+                                            **kwargs)
         self.len = str(len)
         self.type = 'character'
 
@@ -175,11 +179,10 @@ cdef extern from "string.h":
 
 
 default_character = CharacterType(
-        fw_ktp="character", len='1', kind="kind('a')")
+    fw_ktp="character", len='1', kind="kind('a')")
 
 
 class IntegerType(Dtype):
-
     mangler = "fwi_%s"
 
     def __init__(self, fw_ktp, mangler=None, **kwargs):
@@ -188,13 +191,12 @@ class IntegerType(Dtype):
 
 
 default_integer = IntegerType(
-        fw_ktp='integer', kind="kind(0)")
+    fw_ktp='integer', kind="kind(0)")
 
 dim_dtype = IntegerType(fw_ktp="npy_intp", cname="npy_intp", lang='c')
 
 
 class LogicalType(Dtype):
-
     mangler = "fwl_%s"
 
     def __init__(self, fw_ktp, mangler=None, **kwargs):
@@ -206,13 +208,13 @@ class LogicalType(Dtype):
     # 4.4.
     def _get_odecl(self):
 
-        #XXX: refactor this; new attribute?
+        # XXX: refactor this; new attribute?
         if self.lang == 'c' and self.cname:
             return self.cname
 
         if self.length and self.kind:
             raise ValueError(
-                    "both length and kind given for datatype %s" % self.type)
+                "both length and kind given for datatype %s" % self.type)
 
         if self.length:
             return "%s*%s" % ('integer', self.length)
@@ -220,26 +222,27 @@ class LogicalType(Dtype):
             return "%s(kind=%s)" % ('integer', self.kind)
         else:
             return None
+
     odecl = property(_get_odecl)
 
+
 default_logical = LogicalType(
-        fw_ktp='logical', kind="kind(0)")
+    fw_ktp='logical', kind="kind(0)")
 
 
 class RealType(Dtype):
-
     mangler = "fwr_%s"
 
     def __init__(self, fw_ktp, mangler=None, **kwargs):
         super(RealType, self).__init__(fw_ktp, mangler=mangler, **kwargs)
         self.type = 'real'
 
+
 default_real = RealType(fw_ktp='real', kind="kind(0.0)")
-default_dbl  = RealType(fw_ktp='dbl', kind="kind(0.0D0)")
+default_dbl = RealType(fw_ktp='dbl', kind="kind(0.0D0)")
 
 
 class ComplexType(Dtype):
-
     mangler = "fwc_%s"
 
     def __init__(self, fw_ktp, mangler=None, **kwargs):
@@ -248,15 +251,16 @@ class ComplexType(Dtype):
 
 
 default_complex = ComplexType(
-        fw_ktp='complex', kind="kind((0.0,0.0))")
+    fw_ktp='complex', kind="kind((0.0,0.0))")
 default_double_complex = ComplexType(
-        fw_ktp='dbl_complex', kind="kind((0.0D0,0.0D0))")
+    fw_ktp='dbl_complex', kind="kind((0.0D0,0.0D0))")
 
 intrinsic_types = [RealType,
                    IntegerType,
                    ComplexType,
                    CharacterType,
                    LogicalType]
+
 
 class _InternCPtrType(Dtype):
     """
@@ -275,10 +279,12 @@ class _InternCPtrType(Dtype):
     def c_declaration(self):
         return "void *"
 
+
 c_ptr_type = _InternCPtrType()
 
 # we delete it from the module so others aren't tempted to instantiate the class.
 del _InternCPtrType
+
 
 class _NamedType(object):
     '''
@@ -289,7 +295,7 @@ class _NamedType(object):
     def __init__(self, name, dtype, dimension=None):
         if not valid_fort_name(name):
             raise InvalidNameException(
-                    "%s is not a valid fortran variable name.")
+                "%s is not a valid fortran variable name.")
         self.name = name.lower()
         self.dtype = dtype
         if dimension:
@@ -308,7 +314,7 @@ class _NamedType(object):
         return specs
 
     def declaration(self):
-        return '%s :: %s' % ( ', '.join(self.var_specs()), self.name)
+        return '%s :: %s' % (', '.join(self.var_specs()), self.name)
 
     def c_type(self):
         return self.dtype.c_declaration()
@@ -321,6 +327,7 @@ class _NamedType(object):
         if self.is_array:
             deps = deps.union(self.dimension.depnames)
         return deps - intrinsics
+
 
 class Parameter(_NamedType):
 
@@ -342,10 +349,11 @@ class Parameter(_NamedType):
         decl = super(Parameter, self).declaration()
         return "%s = %s" % (decl, self.expr.expr_str)
 
+
 class Dim(object):
 
     def __init__(self, spec):
-        if isinstance(spec, basestring):
+        if isinstance(spec, str):
             spec = tuple(spec.split(':'))
         self.spec = tuple([ScalarIntExpr(s) for s in spec])
 
@@ -357,7 +365,7 @@ class Dim(object):
             lbound, ubound = [sp.expr_str for sp in self.spec]
             if ubound and not lbound:
                 raise ValueError(
-                        "%r is an invalid dimension spec" % self.dim_spec_str())
+                    "%r is an invalid dimension spec" % self.dim_spec_str())
             if ubound == '*':
                 self.is_assumed_size = True
             elif ubound:
@@ -371,12 +379,12 @@ class Dim(object):
             else:
                 self.is_explicit_shape = True
 
-        if not (self.is_explicit_shape or 
-                self.is_assumed_shape or 
+        if not (self.is_explicit_shape or
+                self.is_assumed_shape or
                 self.is_assumed_size):
             raise ValueError(
-                    ("Unable to classify %r dimension spec." %
-                        self.dim_spec_str()))
+                ("Unable to classify %r dimension spec." %
+                 self.dim_spec_str()))
 
         if self.is_assumed_size:
             self.sizeexpr = None
@@ -384,7 +392,7 @@ class Dim(object):
             self.sizeexpr = None
         elif len(self.spec) == 2:
             self.sizeexpr = ("((%s) - (%s) + 1)" %
-                    tuple(reversed([sp.expr_str for sp in self.spec])))
+                             tuple(reversed([sp.expr_str for sp in self.spec])))
         elif len(self.spec) == 1:
             self.sizeexpr = "(%s)" % self.spec[0].expr_str
 
@@ -397,6 +405,7 @@ class Dim(object):
 
     def dim_spec_str(self):
         return ":".join([sp.expr_str for sp in self.spec])
+
 
 class Dimension(object):
 
@@ -438,6 +447,7 @@ class Var(_NamedType):
             specs.append('pointer')
         return specs
 
+
 class Argument(object):
 
     def __init__(self, name, dtype,
@@ -457,24 +467,30 @@ class Argument(object):
 
     def _get_name(self):
         return self._var.name
+
     def _set_name(self, name):
         self._var.name = name
+
     name = property(_get_name, _set_name)
 
     def _get_dtype(self):
         return self._var.dtype
+
     dtype = property(_get_dtype)
 
     def _get_dimension(self):
         return self._var.dimension
+
     dimension = property(_get_dimension)
 
     def _get_ktp(self):
         return self._var.dtype.fw_ktp
+
     ktp = property(_get_ktp)
 
     def _is_array(self):
         return self._var.is_array
+
     is_array = property(_is_array)
 
     def declaration(self, orig=False):
@@ -505,6 +521,7 @@ class Argument(object):
     def depends(self):
         return self._var.depends()
 
+
 class HiddenArgument(Argument):
 
     def __init__(self, name, dtype,
@@ -512,13 +529,14 @@ class HiddenArgument(Argument):
                  intent=None,
                  dimension=None,
                  isvalue=None,
-                 is_return_arg=False,):
+                 is_return_arg=False, ):
         super(HiddenArgument, self).__init__(name, dtype,
-                intent, dimension, isvalue, is_return_arg)
+                                             intent, dimension, isvalue, is_return_arg)
         self.value = value
 
     def intent_spec(self):
         return []
+
 
 class ProcArgument(object):
     def __init__(self, proc):
@@ -547,17 +565,12 @@ class ArgManager(object):
             for depname in o.depends():
                 dep = name2o[depname]
                 if depname in name2o:
-                    # Make sure we get all dependencies in the tree.
-                    queue.add(dep)
-                if depname in pnames:
-                    # The parameter is required as part of an argument
-                    # declaration, so remove it from pnames.
-                    pnames.remove(depname)
+                    queue.add(dep)  # Make sure we get all dependencies in the tree.
+                if depname in pnames:  # The parameter is required as part of an argument
+                    pnames.remove(depname)  # declaration, so remove it from pnames.
 
-        # Whatever is left in pnames is not required for an argument
-        # declaration; remove it from self._params
-        for pname in pnames:
-            self._params.remove(name2o[pname])
+        for pname in pnames:  # Whatever is left in pnames is not required for an argument
+            self._params.remove(name2o[pname])  # declaration; remove it from self._params
 
     def extern_arg_list(self):
         ret = []
@@ -585,7 +598,7 @@ class ArgManager(object):
 
         if left_out:
             raise RuntimeError(
-                    "Required names not provided by scope %r" % list(left_out))
+                "Required names not provided by scope %r" % list(left_out))
 
     def order_declarations(self):
         decl_list = []
@@ -631,7 +644,7 @@ class Procedure(object):
         super(Procedure, self).__init__()
         if not valid_fort_name(name):
             raise InvalidNameException(
-                    "%s is not a valid Fortran procedure name.")
+                "%s is not a valid Fortran procedure name.")
         self.name = name
         self.args = args
         self.arg_man = None
@@ -668,8 +681,8 @@ class Function(Procedure):
         self.return_arg.name = self.name
         self.kind = 'function'
         self.arg_man = ArgManager(args=self.args,
-                            return_arg=self.return_arg,
-                            params=self.params)
+                                  return_arg=self.return_arg,
+                                  params=self.params)
 
 
 class Subroutine(Procedure):

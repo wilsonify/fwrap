@@ -8,7 +8,7 @@ from os import path
 
 # Set isrelease = True for release version.
 isrelease = False
-base_version = "0.2.0"
+base_version = "0.3.0"
 
 def get_version():
 

@@ -9,7 +9,7 @@ from fwrap.code import CodeBuffer
 
 from nose.tools import assert_raises, ok_, eq_, set_trace
 
-from tutils import compare
+from .tutils import compare
 
 def mock_f2c_types(ctps, *args):
     mp = {'fwrap_default_integer' : 'c_int',
@@ -80,7 +80,7 @@ class test_genconfig(object):
                             cd['odecl'], cd['fwrap_name'], cd['npy_enum'])
             eq_(x_,y)
 
-        from cPickle import loads
+        from pickle import loads
         buf = CodeBuffer()
         gc._generate_type_specs(self.ctps[:2], buf)
         ctps = loads(buf.getvalue())

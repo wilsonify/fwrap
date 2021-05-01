@@ -1,7 +1,7 @@
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Copyright (c) 2010, Kurt W. Smith
 # All rights reserved. See LICENSE.txt.
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 from fwrap import code
 
@@ -9,6 +9,7 @@ from nose.tools import ok_, eq_, set_trace
 
 import sys
 from pprint import pprint
+
 
 # 1) Any non-comment line can be broken anywhere -- in the middle of words,
 #    etc.
@@ -20,28 +21,30 @@ def test_breakup():
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
     for chunk in (1, 2, 3, 5, 10, 20, 50, len(line)):
-        yield breakup_gen, line, chunk
+        breakup_gen(line, chunk)
+
 
 def breakup_gen(line, chunk):
     ret = code.reflow_line(line, 0, chunk)
     eq_(simple_break(line, chunk), ret)
     for part in ret[1:-1]:
-        eq_(len(part), chunk+2)
+        eq_(len(part), chunk + 2)
     if len(ret) == 1:
         eq_(len(ret[0]), len(line))
     else:
-        eq_(len(ret[0]), chunk+1)
-        ok_(len(ret[-1]) <= chunk+1)
+        eq_(len(ret[0]), chunk + 1)
+        ok_(len(ret[-1]) <= chunk + 1)
     orig = ''.join(ret)
     orig = orig.replace('&', '')
     eq_(orig, line)
+
 
 def simple_break(text, chunk):
     i = 0
     test_ret = []
     while True:
-        test_ret.append('&'+text[i*chunk:(i+1)*chunk]+'&')
-        if (i+1)*chunk >= len(text):
+        test_ret.append('&' + text[i * chunk:(i + 1) * chunk] + '&')
+        if (i + 1) * chunk >= len(text):
             break
         i += 1
 
@@ -50,20 +53,24 @@ def simple_break(text, chunk):
     # set_trace()
     return test_ret
 
+
 def test_nobreak():
     line = ("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
     ret = code.reflow_line(line, 0, 100)
     eq_(ret, [line])
 
+
 def test_indent():
     line = "12345678901234567890"
     ret = code.reflow_line(line, 1, 100)
-    eq_(ret, [code.INDENT+line])
+    eq_(ret, [code.INDENT + line])
     ret = code.reflow_line(line, 1, 10)
-    eq_(ret, [code.INDENT+line[:8]+'&',
-              code.INDENT+'&'+line[8:16]+'&',
-              code.INDENT+'&'+line[16:]])
+    eq_(ret, [code.INDENT + line[:8] + '&',
+              code.INDENT + '&' + line[8:16] + '&',
+              code.INDENT + '&' + line[16:]])
+
+
 def test_reflow():
     reflow_src = ("subroutine many_args(a0, a1, a2, a3, a4, a5, a6, a7, a8, "
                   "a9, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30"
@@ -80,6 +87,3 @@ def test_reflow():
     buf.putline(code.reflow_fort(reflow_src))
     for line in buf.getvalue().splitlines():
         ok_(len(line) <= 79, "len('%s') > 79" % line)
-
-
-

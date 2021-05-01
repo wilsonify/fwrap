@@ -6,10 +6,10 @@
 from fwrap import cy_wrap
 from fwrap import pyf_iface as pyf
 from fwrap import fc_wrap
-from cStringIO import StringIO
+from io import StringIO
 from fwrap.code import CodeBuffer
 
-from tutils import compare
+from .tutils import compare
 
 from nose.tools import ok_, eq_, set_trace
 

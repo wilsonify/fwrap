@@ -38,7 +38,7 @@ def wrap(sources, name=PROJNAME):
     source_files = []
     def check(s):
         return os.path.exists(s)
-    if isinstance(sources, basestring):
+    if isinstance(sources, str):
         if check(sources):
             source_files = [sources]
     elif isinstance(sources, (list, tuple)):
@@ -95,7 +95,7 @@ def generate(fort_ast, name):
 def write_to_dir(dir, file_name, buf):
     fh = open(os.path.join(dir, file_name), 'w')
     try:
-        if isinstance(buf, basestring):
+        if isinstance(buf, str):
             fh.write(buf)
         else:
             fh.write(buf.getvalue())

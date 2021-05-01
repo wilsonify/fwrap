@@ -10,13 +10,13 @@ from fwrap import fc_wrap
 from fwrap import cy_wrap
 from fwrap import constants
 from fwrap import fwrapper
-from cStringIO import StringIO
+from io import StringIO
 from fwrap import pyf_iface as pyf
 from fwrap.code import CodeBuffer
 
 from nose.tools import ok_, eq_, set_trace
 
-from tutils import compare
+from .tutils import compare
 
 class test_fwrapper(object):
 
@@ -160,7 +160,7 @@ cpdef api object empty_func():
         compare(test_str, buf.getvalue())
 
     def test_generate_type_specs(self):
-        from cPickle import loads
+        from pickle import loads
         fort_ast = fwrapper.parse(self.source_file_lst)
         c_ast = fc_wrap.wrap_pyf_iface(fort_ast)
         cython_ast = cy_wrap.wrap_fc(c_ast)

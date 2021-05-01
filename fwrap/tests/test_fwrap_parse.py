@@ -1,14 +1,15 @@
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Copyright (c) 2010, Kurt W. Smith
 # All rights reserved. See LICENSE.txt.
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 from fwrap import fwrap_parse as fp
 from fwrap import pyf_iface as pyf
 
-from cStringIO import StringIO
+from io import StringIO
 
 from nose.tools import ok_, eq_, set_trace
+
 
 def test_parse_many():
     buf = '''\
@@ -35,13 +36,16 @@ func1 = a + aimag(c) - b
 end function func1
 '''
     subr, func = fp.generate_ast([buf])
-    eq_(subr.name, 'subr1')
-    eq_(func.name, 'func1')
-    eq_([arg.name for arg in subr.args], ['a', 'b', 'c'])
-    eq_([arg.dtype for arg in subr.args], [pyf.default_integer,
-                                           pyf.default_complex,
-                                           pyf.default_dbl])
-    # eq_([arg.name for arg in subr.args], ['a', 'b', 'c'])
+    assert subr.name == 'subr1'
+    assert func.name == 'func1'
+    assert [arg.name for arg in subr.args], ['a', 'b' == 'c']
+    assert [arg.dtype for arg in subr.args] == [
+        pyf.default_integer,
+        pyf.default_complex,
+        pyf.default_dbl
+    ]
+    # assert [arg.name for arg in subr.args], ['a', 'b' ==  'c']
+
 
 def test_parse_array_args():
     buf = '''\
@@ -63,9 +67,9 @@ def test_parse_array_args():
      $                   VT( LDVT, * ), WORK( * )
       END SUBROUTINE DGESDD'''
     subr = fp.generate_ast([buf])[0]
-    eq_(subr.name, 'dgesdd')
-    eq_([arg.name for arg in subr.args],
-        "jobz m n a lda s u ldu vt ldvt work lwork iwork info".split())
+    assert subr.name == 'dgesdd'
+    assert [arg.name for arg in subr.args] == "jobz m n a lda s u ldu vt ldvt work lwork iwork info".split()
+
 
 def test_parse_kind_args():
     fcode = '''\
@@ -82,7 +86,6 @@ function int_args_func(a,b,c,d)
 end function int_args_func
 '''
     func = fp.generate_ast([fcode])[0]
-    eq_([arg.dtype.odecl
-            for arg in func.args],
-        ["integer(kind=%d)" % i
-            for i in (1,2,4,8)])
+    assert [arg.dtype.odecl for arg in func.args] == [
+        "integer(kind=%d)" % i for i in (1, 2, 4, 8)
+    ]

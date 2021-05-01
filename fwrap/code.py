@@ -2,8 +2,8 @@
 # Copyright (c) 2010, Kurt W. Smith
 # All rights reserved. See LICENSE.txt.
 #------------------------------------------------------------------------------
-
-from cStringIO import StringIO
+import logging
+from io import StringIO
 from math import ceil, floor
 
 INDENT = "  "
@@ -77,7 +77,7 @@ class CodeBuffer(object):
         self.sio.write('\n')
 
     def putlines(self, lines):
-        if isinstance(lines, basestring):
+        if isinstance(lines, str):
             lines = lines.splitlines()
         for line in lines:
             self.putln(line)
@@ -102,4 +102,5 @@ class CodeBuffer(object):
         return self.sio.getvalue()
 
     def write(self, s):
-        self.sio.write(s)
+        logging.warning(f"s={s}")
+        self.sio.write(str(s))

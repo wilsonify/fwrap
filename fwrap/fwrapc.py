@@ -1,16 +1,18 @@
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Copyright (c) 2010, Kurt W. Smith
 # All rights reserved. See LICENSE.txt.
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 # encoding: utf-8
-
+import logging
 import os, sys, shutil
 import subprocess
-from optparse import OptionParser, OptionGroup
+import argparse
+from collections import namedtuple
 
 PROJECT_OUTDIR = 'fwproj'
 PROJECT_NAME = PROJECT_OUTDIR
+
 
 def setup_dirs(dirname):
     p = os.path
@@ -28,31 +30,35 @@ def setup_dirs(dirname):
 
     # cp waf and wscript into the project dir.
     fw_wscript = os.path.join(
-            fwrap_path,
-            'fwrap_wscript')
+        fwrap_path,
+        'fwrap_wscript')
 
     shutil.copy(
-            fw_wscript,
-            os.path.join(dirname, 'wscript'))
+        fw_wscript,
+        os.path.join(dirname, 'wscript'))
 
     waf_path = os.path.join(
-            fwrap_path,
-            'waf')
+        fwrap_path,
+        'waf')
 
     shutil.copy(
-            waf_path,
-            dirname)
+        waf_path,
+        dirname)
+
 
 def wipe_out(dirname):
     # wipe out everything and start over.
     shutil.rmtree(dirname, ignore_errors=True)
 
+
 def proj_dir(name):
     return os.path.abspath(name)
+
 
 def configure_cb(opts, args, orig_args):
     wipe_out(proj_dir(opts.outdir))
     setup_dirs(proj_dir(opts.outdir))
+
 
 def build_cb(opts, args, argv):
     srcs = []
@@ -65,6 +71,7 @@ def build_cb(opts, args, argv):
     dst = os.path.join(proj_dir(opts.outdir), 'src')
     for src in srcs:
         shutil.copy(src, dst)
+
 
 def call_waf(opts, args, orig_args):
     if 'configure' in args:
@@ -79,6 +86,7 @@ def call_waf(opts, args, orig_args):
 
     cmd = [py_exe, waf_path] + orig_args
     odir = os.path.abspath(os.curdir)
+    os.makedirs(opts.outdir, exist_ok=True)
     os.chdir(proj_dir(opts.outdir))
     try:
         subprocess.check_call(cmd)
@@ -86,6 +94,7 @@ def call_waf(opts, args, orig_args):
         os.chdir(odir)
 
     return 0
+
 
 def print_version():
     from fwrap.version import get_version
@@ -96,39 +105,23 @@ Fwrap is distributed under an open-source license.   See the source for
 licensing information.  There is NO warranty, not even for MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.
 """ % get_version()
-    print vandl
+    print(vandl)
+
 
 def fwrapc(argv):
     """
     Main entry point -- called by cmdline script.
     """
-
-    subcommands = ('configure', 'gen', 'build')
-
-    parser = OptionParser()
-    parser.add_option('--version', dest="version",
-                      action="store_true", default=False,
-                      help="get version and license info and exit")
-
-    # configure options
-    configure_opts = OptionGroup(parser, "Configure Options")
-    configure_opts.add_option("--name",
-            help='name for the extension module [default %default]')
-    configure_opts.add_option("--outdir",
-            help='directory for the intermediate files [default %default]')
-    parser.add_option_group(configure_opts)
-
-    conf_defaults = dict(name=PROJECT_NAME, outdir=PROJECT_OUTDIR)
-    parser.set_defaults(**conf_defaults)
-
-    opts, args = parser.parse_args(args=argv)
-
-    if opts.version:
-        print_version()
-        return 0
-
-    if not ('configure' in args or 'build' in args):
-        parser.print_usage()
-        return 1
-
-    return call_waf(opts, args, argv)
+    parser = argparse.ArgumentParser(prog="fwrapc", description="wrap fortran with c")
+    parser.add_argument("filename", help='path to fortran source file')
+    parser.add_argument("--configure", default=False, help='waf commands')
+    parser.add_argument("--gen", default=False, help='waf commands')
+    parser.add_argument("--build", default=False, help='waf commands')
+    parser.add_argument('--workdir')
+    parser.add_argument('--version', help="get version and license info and exit")
+    parser.add_argument("--name", help='name for the extension module')
+    parser.add_argument("--outdir", help='directory for the intermediate files')
+    parser.add_argument('--fcompiler', help="set your fortran vendor")
+    args = parser.parse_args(args=argv)
+    logging.warning(f"args = {args}")
+    call_waf(args, args, [])

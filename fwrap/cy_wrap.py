@@ -77,7 +77,7 @@ For usage information see the function docstrings.
     return dstring
 
 def CyArgWrapper(arg):
-    import fc_wrap
+    from . import fc_wrap
     if isinstance(arg, fc_wrap.ErrStrArgWrapper):
         return _CyErrStrArg(arg)
     elif isinstance(arg.dtype, pyf_iface.ComplexType):

@@ -1,19 +1,20 @@
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Copyright (c) 2010, Kurt W. Smith
 # All rights reserved. See LICENSE.txt.
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 # Modifed beyond all recognition from example parser in fourFn.py, distributed
 # with pyparsing.
 #
 # Original fourFn.py is Copyright 2003-2009 by Paul McGuire
+import logging
 
+from .pyparsing import (Literal, CaselessLiteral, Word, Group, Optional,
+                        ZeroOrMore, Forward, nums, alphas, Regex, Combine, TokenConverter,
+                        QuotedString, FollowedBy, Empty)
 
-from pyparsing_py2 import (Literal, CaselessLiteral, Word, Group, Optional,
-        ZeroOrMore, Forward, nums, alphas, Regex, Combine, TokenConverter,
-        QuotedString, FollowedBy, Empty)
+from .visitor import TreeVisitor
 
-from visitor import TreeVisitor
 
 class ExtractNames(TreeVisitor):
 
@@ -24,7 +25,7 @@ class ExtractNames(TreeVisitor):
 
     visit_ExprNode = TreeVisitor.visitchildren
 
-    #XXX: slight hack here...
+    # XXX: slight hack here...
     visit_str = lambda self, x: None
 
     def visit_FuncRefNode(self, node):
@@ -39,15 +40,16 @@ class ExtractNames(TreeVisitor):
 
     def _get_names(self):
         return [node.name for node in self.namenodes]
+
     names = property(_get_names)
 
     def _get_funcnames(self):
         return [node.name for node in self.funcnamenodes]
+
     funcnames = property(_get_funcnames)
 
 
 class ExprNode(object):
-
     child_attrs = ["subexpr"]
 
     def __init__(self, s, loc, toks):
@@ -55,7 +57,6 @@ class ExprNode(object):
 
 
 class AssumedShapeSpec(ExprNode):
-
     child_attrs = []
 
     def __init__(self, s, loc, toks):
@@ -64,7 +65,6 @@ class AssumedShapeSpec(ExprNode):
 
 
 class CharLiteralConst(ExprNode):
-
     child_attrs = ["kind"]
 
     def __init__(self, s, loc, toks):
@@ -84,7 +84,6 @@ class CharLiteralConst(ExprNode):
 
 
 class RealLitConst(ExprNode):
-
     child_attrs = ["sign", "real", "kind"]
 
     def __init__(self, s, loc, toks):
@@ -101,7 +100,6 @@ class RealLitConst(ExprNode):
 
 
 class FuncRefNode(ExprNode):
-
     child_attrs = ["name", "arg_spec_list"]
 
     def __init__(self, s, loc, toks):
@@ -109,19 +107,17 @@ class FuncRefNode(ExprNode):
 
 
 class ArgSpecNode(ExprNode):
-
     child_attrs = ["kw", "arg"]
-     
+
     def __init__(self, s, loc, toks):
         self.kw = None
         if len(toks) == 3:
             self.kw, eq, self.arg = toks.asList()
         else:
-            self.arg, = toks.asList()
+            self.arg = toks.asList()
 
 
 class KindParam(ExprNode):
-
     child_attrs = ["param"]
 
     def __init__(self, s, loc, toks):
@@ -130,7 +126,6 @@ class KindParam(ExprNode):
 
 
 class ComplexLitConst(ExprNode):
-
     child_attrs = ["realpart", "imagpart"]
 
     def __init__(self, s, loc, toks):
@@ -139,7 +134,6 @@ class ComplexLitConst(ExprNode):
 
 
 class LogicalLitConst(ExprNode):
-
     child_attrs = ["value", "kind"]
 
     def __init__(self, s, loc, toks):
@@ -152,7 +146,6 @@ class LogicalLitConst(ExprNode):
 
 
 class NameNode(ExprNode):
-
     child_attrs = []
 
     def __init__(self, s, loc, toks):
@@ -160,7 +153,6 @@ class NameNode(ExprNode):
 
 
 class SignNode(ExprNode):
-
     child_attrs = []
 
     def __init__(self, s, loc, toks):
@@ -171,7 +163,6 @@ class SignNode(ExprNode):
 
 
 class DigitStringNode(ExprNode):
-
     child_attrs = []
 
     def __init__(self, s, loc, toks):
@@ -180,8 +171,8 @@ class DigitStringNode(ExprNode):
     def __str__(self):
         return str(self.digit_string)
 
-class LiteralNode(ExprNode):
 
+class LiteralNode(ExprNode):
     child_attrs = []
 
     def __init__(self, s, loc, toks):
@@ -190,7 +181,10 @@ class LiteralNode(ExprNode):
     def __str__(self):
         return str(self.val)
 
+
 fort_expr_bnf = None
+
+
 def get_fort_expr_bnf():
     global fort_expr_bnf
     if fort_expr_bnf:
@@ -229,45 +223,45 @@ def get_fort_expr_bnf():
     sig2nd = (dot + digit_string)
     significand = (sig1st | sig2nd)
     real_lit_const_1st = (Combine(
-                            significand +
-                            Optional(expo_letter + exponent)) +
+        significand +
+        Optional(expo_letter + exponent)) +
                           Optional(under + kind_param))
 
     real_lit_const_2nd = (Combine(
-                            digit_string +
-                            expo_letter +
-                            exponent) +
+        digit_string +
+        expo_letter +
+        exponent) +
                           Optional(under + kind_param))
     real_literal_constant = (real_lit_const_1st | real_lit_const_2nd)
     signed_real_literal_constant = \
-            (Optional(sign) +
-                real_literal_constant).setParseAction(RealLitConst)
+        (Optional(sign) +
+         real_literal_constant).setParseAction(RealLitConst)
 
     # complex literals
-    cmplx_part = ( signed_real_literal_constant
+    cmplx_part = (signed_real_literal_constant
                   | signed_int_literal_constant
                   | name)
     complex_literal_constant = \
-            (lpar + cmplx_part +
-                    comma + cmplx_part + rpar).setParseAction(ComplexLitConst)
+        (lpar + cmplx_part +
+         comma + cmplx_part + rpar).setParseAction(ComplexLitConst)
 
     # character literals
     squotedString = QuotedString(quoteChar="'", escQuote="''")
     dquotedString = QuotedString(quoteChar='"', escQuote='""')
 
-    #XXX: this is kind of cheating...
+    # XXX: this is kind of cheating...
     char_literal_constant = \
-            (Optional(kind_param + Optional("_")) +
-              (squotedString | dquotedString)).setParseAction(CharLiteralConst)
+        (Optional(kind_param + Optional("_")) +
+         (squotedString | dquotedString)).setParseAction(CharLiteralConst)
 
     # logical literals
     logical_literal_constant = \
-            ( (CaselessLiteral(".TRUE.") +
-                    Optional(under + kind_param))
-             | (CaselessLiteral(".FALSE.") +
-                 Optional(under + kind_param))).setParseAction(LogicalLitConst)
+        ((CaselessLiteral(".TRUE.") +
+          Optional(under + kind_param))
+         | (CaselessLiteral(".FALSE.") +
+            Optional(under + kind_param))).setParseAction(LogicalLitConst)
 
-    constant = (  char_literal_constant
+    constant = (char_literal_constant
                 | complex_literal_constant
                 | signed_real_literal_constant
                 | logical_literal_constant
@@ -275,37 +269,43 @@ def get_fort_expr_bnf():
 
     arg = (expr | name)
     arg_spec = (Optional(name + Literal("="))
-                        + arg).setParseAction(ArgSpecNode)
+                + arg).setParseAction(ArgSpecNode)
     arg_spec_list = (arg_spec + ZeroOrMore(comma + arg_spec))
     function_reference = (name + lpar + Optional(arg_spec_list)
-                                    + rpar).setParseAction(FuncRefNode)
+                          + rpar).setParseAction(FuncRefNode)
 
-    #R701
+    # R701
     primary = (function_reference ^ constant ^ name ^ (lpar + expr + rpar))
 
-    #R702 we ignore defined unary ops for now.
+    # R702 we ignore defined unary ops for now.
     level1_expr = primary
 
-    #R704 - R709
+    # R704 - R709
     mult_operand = Forward()
     mult_operand << (level1_expr + Optional((power_op + mult_operand)))
     add_operand = (mult_operand + ZeroOrMore(mult_op + mult_operand))
     level2_expr = (ZeroOrMore(sign) +
-                        add_operand + ZeroOrMore(add_op + add_operand))
+                   add_operand + ZeroOrMore(add_op + add_operand))
 
-    #R710 - R711
+    # R710 - R711
     level3_expr = (level2_expr + ZeroOrMore(concat_op + level2_expr))
 
     # We skip level 4 and level 5 expressions, since they aren't valid in a
     # dimension or ktp context.
 
     # expr << (Literal('*').setParseAction(AssumedShapeSpec) | level3_expr.setParseAction(ExprNode))
-    expr << ( level3_expr.setParseAction(ExprNode)
-            | Literal('*').setParseAction(AssumedShapeSpec)
-            | Empty().setParseAction(ExprNode))
+    expr << (level3_expr.setParseAction(ExprNode)
+             | Literal('*').setParseAction(AssumedShapeSpec)
+             | Empty().setParseAction(ExprNode))
 
     fort_expr_bnf = expr
     return fort_expr_bnf
 
+
 def parse(s):
-    return get_fort_expr_bnf().parseString(s, parseAll=False).asList()[0]
+    logging.debug(f"s = {s}")
+    if s is None:
+        return s
+    if len(s) < 1:
+        return s
+    return list(get_fort_expr_bnf().parseString(s, parseAll=False))[0]
