@@ -1,0 +1,3 @@
+[submodule "fwrap/waf"]
+	path = fwrap/waf
+	url = https://gitlab.com/ita1024/waf.git
