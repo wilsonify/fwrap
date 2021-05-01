@@ -1,0 +1,5 @@
+fparser
+cython
+numpy
+nose
+pytest
