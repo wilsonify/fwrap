@@ -2,6 +2,8 @@
 # Copyright (c) 2010, Kurt W. Smith
 # All rights reserved. See LICENSE.txt.
 # ------------------------------------------------------------------------------
+import inspect
+import logging
 
 from fwrap.fort_expr import parse, ExtractNames
 import pytest
@@ -21,6 +23,7 @@ def test_func_ref():
 
 
 def test_extractnames():
+    logging.debug(f"{inspect.currentframe().f_code.co_name}")
     ss = "-+12354.5678E-12_aoeu"
     expr = parse(ss)
     xtor = ExtractNames()
