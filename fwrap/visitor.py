@@ -9,6 +9,9 @@
 # Ripped out of Cython and used for expression tree parsing.
 
 import inspect
+import logging
+from pprint import pprint
+
 from Cython.Compiler.ExprNodes import ExprNode, NameNode
 from Cython.Compiler.Nodes import DefNode, Node
 
@@ -23,6 +26,7 @@ class BasicVisitor(object):
         self.dispatch_table = {}
 
     def visit(self, obj):
+        logging.debug(f"{inspect.currentframe().f_code.co_name}")
         cls = type(obj)
         try:
             handler_method = self.dispatch_table[cls]

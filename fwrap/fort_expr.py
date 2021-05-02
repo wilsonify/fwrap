@@ -7,6 +7,7 @@
 # with pyparsing.
 #
 # Original fourFn.py is Copyright 2003-2009 by Paul McGuire
+import inspect
 import logging
 
 from .pyparsing import (Literal, CaselessLiteral, Word, Group, Optional,
@@ -25,20 +26,21 @@ class ExtractNames(TreeVisitor):
 
     visit_ExprNode = TreeVisitor.visitchildren
 
-    # XXX: slight hack here...
-    visit_str = lambda self, x: None
-
     def visit_FuncRefNode(self, node):
+        logging.debug(f"{inspect.currentframe().f_code.co_name}")
         self.funcnamenodes.append(node.name)
         self.visitchildren(node, ["arg_spec_list"])
 
     def visit_NameNode(self, node):
+        logging.debug(f"{inspect.currentframe().f_code.co_name}")
         self.namenodes.append(node)
 
     def visit_ArgSpecNode(self, node):
+        logging.debug(f"{inspect.currentframe().f_code.co_name}")
         self.visitchildren(node, ["arg"])
 
     def _get_names(self):
+        logging.debug(f"{inspect.currentframe().f_code.co_name}")
         return [node.name for node in self.namenodes]
 
     names = property(_get_names)
